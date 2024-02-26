@@ -1,5 +1,6 @@
 package com.bitaqaty.currencyapp.presentation.convertCurrency
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
@@ -20,43 +22,86 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.NavController
-import com.bitaqaty.currencyapp.data.remote.dto.Currency
-
+import com.bitaqaty.currencyapp.R
 import com.bitaqaty.currencyapp.presentation.navigation.Screen
+import com.bitaqaty.currencyapp.utils.ComposableWithSnackbar
 import com.bitaqaty.currencyapp.utils.extention.getMap
+import com.bitaqaty.currencyapp.utils.handleLoadAndError
+import com.bitaqaty.currencyapp.utils.networkConnection.ConnectionState
+import com.bitaqaty.currencyapp.utils.networkConnection.connectivityState
+
+import kotlinx.coroutines.delay
+
 
 @Composable
 fun ConvertCurrency(navController: NavController) {
     val convertCurrencyViewModel = hiltViewModel<ConvertCurrencyViewModel>()
-    var fromText by remember { mutableStateOf("EUR") }
-    var toText by remember { mutableStateOf("EGP") }
-    var amountfrom by remember { mutableStateOf("") }
-    var amountTo by remember { mutableStateOf("") }
+    var fromCurrency by remember { mutableStateOf("From") }
+    var toCurrency by remember { mutableStateOf("To") }
+    var fromAmount by remember { mutableStateOf("") }
+    var toAmount by remember { mutableStateOf("") }
+    var callConvert by remember { mutableStateOf("") }
     var isFromDropdownExpanded by remember { mutableStateOf(false) }
     var isToDropdownExpanded by remember { mutableStateOf(false) }
-    val dropdownValues2 by remember { mutableStateOf(ArrayList<String>()) }
+    val snackbarVisibleState = remember { mutableStateOf(false) }
+    var messageError by remember { mutableStateOf("") }
+    val isLoader = remember { mutableStateOf(false) }
+    val dropdownValues by remember { mutableStateOf(ArrayList<String>()) }
+    val from = stringResource(R.string.from)
+    val to = stringResource(R.string.too)
+    val connection by connectivityState()
+    val isConnected = connection === ConnectionState.Available
 
-    LaunchedEffect(true) {
-        // convertCurrencyViewModel.convert(from = "", to = "", amount = "12")
-        //  convertCurrencyViewModel.getSymbols()
+    if (isConnected.not()) {
+        messageError = stringResource(R.string.network_error)
+        snackbarVisibleState.value = true
+    } else {
+        snackbarVisibleState.value = false
+        LaunchedEffect(true) {
+            isLoader.value = true
+            convertCurrencyViewModel.getSymbols()
+            convertCurrencyViewModel.symbolsSeries.collect {
+                handleLoadAndError(it, snackbarVisibleState, isLoader) {
+                    it.symbols?.let { it1 -> setCurrenciesToSpinner(dropdownValues, it1) }
+                }
+            }
+        }
+        LaunchedEffect(callConvert) {
+            if (callConvert.isNotEmpty()) {
+                delay(1000)
 
+                makeConvert(
+                    fromCurrency,
+                    toCurrency,
+                    fromAmount,
+                    convertCurrencyViewModel,
+                    isLoader,
+                    snackbarVisibleState, to, from
+                )
+            }
+            convertCurrencyViewModel.convert.collect {
+                handleLoadAndError(it, snackbarVisibleState, isLoader) {
+                    toAmount = it.result.toString()
+                }
+            }
+
+        }
     }
 
-    getMap(convertCurrencyViewModel.symbolsSeries.collectAsState().value?.data?.symbols)?.keys?.let {
-        dropdownValues2.addAll(
-            it
-        )
-    }
+
+
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(32.dp), verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Navigation(navController)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -69,13 +114,10 @@ fun ConvertCurrency(navController: NavController) {
                     .background(Color.Yellow, shape = RoundedCornerShape(16.dp))
                     .clickable {
                         isFromDropdownExpanded = true
-//                        makeConvert(fromText,toText, onClick = {
-//                            convertCurrencyViewModel.convert(fromText,toText,"2")
-//                        })
                     }
             ) {
                 Text(
-                    text = fromText.ifEmpty { "From" },
+                    text = fromCurrency.ifEmpty { "From" },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
@@ -85,10 +127,11 @@ fun ConvertCurrency(navController: NavController) {
                     expanded = isFromDropdownExpanded,
                     onDismissRequest = { isFromDropdownExpanded = false },
                 ) {
-                    dropdownValues2.forEach { label ->
+                    dropdownValues.forEach { label ->
                         DropdownMenuItem(text = { Text(text = label) }, onClick = {
-                            fromText = label
+                            fromCurrency = label
                             isFromDropdownExpanded = false
+                            callConvert = label
                         })
                     }
                 }
@@ -104,7 +147,7 @@ fun ConvertCurrency(navController: NavController) {
                     }
             ) {
                 Text(
-                    text = toText.ifEmpty { "To" },
+                    text = toCurrency.ifEmpty { "To" },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
@@ -114,16 +157,12 @@ fun ConvertCurrency(navController: NavController) {
                     expanded = isToDropdownExpanded,
                     onDismissRequest = { isToDropdownExpanded = false },
                 ) {
-                    dropdownValues2.forEach { label ->
+                    dropdownValues.forEach { label ->
                         DropdownMenuItem(text = { Text(text = label) }, onClick = {
-                            toText = label
+                            toCurrency = label
                             isToDropdownExpanded = false
-                            makeConvert(fromText, toText, onClick = {
-                                convertCurrencyViewModel.convert(fromText, toText, "2")
-                            })
+                            callConvert = label
                         })
-
-
                     }
                 }
 
@@ -134,9 +173,12 @@ fun ConvertCurrency(navController: NavController) {
                 .fillMaxWidth()
         ) {
             OutlinedTextField(
-                value = amountfrom,
-                onValueChange = { amountfrom = it },
-                label = { Text("From", textAlign = TextAlign.Center) },
+                value = fromAmount,
+                onValueChange = {
+                    fromAmount = it
+                    callConvert = fromAmount
+                },
+                label = { Text(stringResource(R.string.from), textAlign = TextAlign.Center) },
                 modifier = Modifier
                     .weight(1f)
                     .padding(bottom = 16.dp, end = 16.dp),
@@ -144,11 +186,11 @@ fun ConvertCurrency(navController: NavController) {
             )
 
             OutlinedTextField(
-                value = amountTo,
+                value = toAmount,
                 onValueChange = {
-                    amountTo = it
+                    toAmount = it
                 },
-                label = { Text("To", textAlign = TextAlign.Center) },
+                label = { Text(stringResource(R.string.to), textAlign = TextAlign.Center) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -164,25 +206,61 @@ fun ConvertCurrency(navController: NavController) {
             onClick = {
                 navController.navigate(
                     Screen.Historical.route
-                        .plus("/${fromText}/${toText}/${amountfrom}/${amountTo}")
+                        .plus("/${fromCurrency}/${toCurrency}/${fromAmount}/${toAmount}")
                 )
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(text = "Details")
+            Text(text = stringResource(R.string.details))
         }
     }
 
+    ComposableWithSnackbar(snackbarVisibleState, messageError)
 
+    Loader(isLoading = isLoader.value)
 }
 
-fun makeConvert(fromText: String, toText: String, onClick: () -> Unit) {
-    if (fromText != "From" && toText != "To") {
-        onClick()
+
+private fun makeConvert(
+    fromCurrency: String,
+    toCurrency: String,
+    fromAmount: String,
+    convertCurrencyViewModel: ConvertCurrencyViewModel,
+    isLoader: MutableState<Boolean>,
+    snackbarVisibleState: MutableState<Boolean>, to: String, from: String
+) {
+    if (fromCurrency != from && toCurrency != to && fromAmount.isNotEmpty()) {
+        isLoader.value = true
+        convertCurrencyViewModel.convert(
+            fromCurrency,
+            toCurrency,
+            fromAmount
+        )
     } else {
-        //   Toasty.error(requireContext(), getString(R.string.choose_currency)).show()
+        //snackbarVisibleState.value = true
     }
 }
+
+
+private fun setCurrenciesToSpinner(
+    dropdownValues2: ArrayList<String>, symbols: Any
+) {
+    getMap(symbols)?.keys?.let { dropdownValues2.addAll(it) }
+}
+
+
+@Composable
+fun Loader(isLoading: Boolean) {
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    }
+}
+
 //@Preview
 //@Composable
 //fun PreviewConvertCurrencyScreen() {

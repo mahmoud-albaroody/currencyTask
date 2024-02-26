@@ -26,12 +26,12 @@ class ConvertCurrencyViewModel @Inject constructor(
     // Since uiScope has a default dispatcher of Dispatchers.Main, this coroutine will be launched
     // in the main thread.
     private val uiScope = CoroutineScope(Dispatchers.IO + viewModelJob)
-    private val _convert = MutableStateFlow<Resource<ConvertResponse>?>(null)
-    val convert: MutableStateFlow<Resource<ConvertResponse>?>
+    private val _convert = MutableSharedFlow<Resource<ConvertResponse>>()
+    val convert: MutableSharedFlow<Resource<ConvertResponse>>
         get() = _convert
 
-    private val _symbolsSeries = MutableStateFlow<Resource<SymbolsResponse>?>(null)
-    val symbolsSeries: MutableStateFlow<Resource<SymbolsResponse>?>
+    private val _symbolsSeries = MutableSharedFlow<Resource<SymbolsResponse>>()
+    val symbolsSeries: MutableSharedFlow<Resource<SymbolsResponse>>
         get() = _symbolsSeries
 
     fun convert(from: String, to: String, amount: String) {

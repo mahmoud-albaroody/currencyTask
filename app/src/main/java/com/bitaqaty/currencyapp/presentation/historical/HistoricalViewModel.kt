@@ -25,12 +25,12 @@ class HistoricalViewModel @Inject constructor(
 
     private val uiScope = CoroutineScope(Dispatchers.IO + viewModelJob)
 
-    private val _timeSeries = MutableStateFlow<Resource<TimeSeriesResponse>?>(null)
-    val timeSeries: MutableStateFlow<Resource<TimeSeriesResponse>?>
+    private val _timeSeries = MutableSharedFlow<Resource<TimeSeriesResponse>>()
+    val timeSeries: MutableSharedFlow<Resource<TimeSeriesResponse>>
         get() = _timeSeries
 
-    private val _currency = MutableStateFlow<Resource<CurrencyResponse>?>(null)
-    val currency: MutableStateFlow<Resource<CurrencyResponse>?>
+    private val _currency = MutableSharedFlow<Resource<CurrencyResponse>>()
+    val currency: MutableSharedFlow<Resource<CurrencyResponse>>
         get() = _currency
 
     fun getTimeSeries(

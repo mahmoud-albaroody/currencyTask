@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">تطبيق العملات</string>
+    <string name="network_error">خطأ في الشبكة</string>
+    <string name="last_3_days">آخر ٣ أيام</string>
+    <string name="to">إلى</string>
+    <string name="from">من</string>
+    <string name="details">تفاصيل</string>
+</resources>

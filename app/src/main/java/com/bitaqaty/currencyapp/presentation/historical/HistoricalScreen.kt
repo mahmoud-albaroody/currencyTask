@@ -1,6 +1,9 @@
 package com.bitaqaty.currencyapp.presentation.historical
 
 import android.icu.text.DecimalFormat
+import android.os.Build
+import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -9,9 +12,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
@@ -19,42 +26,79 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.bitaqaty.currencyapp.R
 import com.bitaqaty.currencyapp.data.remote.dto.Currency
 import com.bitaqaty.currencyapp.data.remote.dto.CurrencyRate
+import com.bitaqaty.currencyapp.presentation.convertCurrency.Loader
+import com.bitaqaty.currencyapp.utils.ComposableWithSnackbar
 import com.bitaqaty.currencyapp.utils.extention.getMap
 import com.bitaqaty.currencyapp.utils.getCurrentDate
 import com.bitaqaty.currencyapp.utils.getDateBeforeToDay
+import com.bitaqaty.currencyapp.utils.handleLoadAndError
+import com.bitaqaty.currencyapp.utils.networkConnection.ConnectionState
+import com.bitaqaty.currencyapp.utils.networkConnection.connectivityState
 
+@RequiresApi(Build.VERSION_CODES.N)
 @Composable
 fun HistoricalFragment(
     navController: NavController, currencyFrom: String, currencyTo: String,
     amountFrom: String, amountTo: String
 ) {
     val historicalViewModel = hiltViewModel<HistoricalViewModel>()
-    val currencies: ArrayList<Currency> = arrayListOf()
-    val currenciesRate: ArrayList<CurrencyRate> = arrayListOf()
-    val df = DecimalFormat("#.00")
-    LaunchedEffect(true) {
-        historicalViewModel.getTimeSeries(
-            startDate = getDateBeforeToDay(),
-            endDate = getCurrentDate(),
-            base = currencyFrom
-        )
-        historicalViewModel.getCurrency(getCurrentDate(), currencyFrom)
+    val currencies by remember { mutableStateOf(ArrayList<Currency>()) }
+    val currenciesRate by remember { mutableStateOf(ArrayList<CurrencyRate>()) }
+    val snackbarVisibleState = remember { mutableStateOf(false) }
+    var messageError by remember { mutableStateOf("") }
+    val isLoader = remember { mutableStateOf(false) }
+    val df = DecimalFormat("#.0000")
+    val connection by connectivityState()
+    val isConnected = connection === ConnectionState.Available
+    if (isConnected.not()) {
+        messageError = stringResource(R.string.network_error)
+        snackbarVisibleState.value = true
+    } else {
+        LaunchedEffect(true) {
+            isLoader.value = true
+            historicalViewModel.getCurrency(getCurrentDate(), currencyFrom)
+            historicalViewModel.currency.collect {
+                handleLoadAndError(it, snackbarVisibleState, isLoader) {
+                    it.rates?.let { it1 ->
+                        addCurrenciesListAndNotifyData(
+                            it1,
+                            currenciesRate,
+                            df,
+                            amountFrom
+                        )
+                    }
+                }
+            }
+        }
+        LaunchedEffect("") {
+            historicalViewModel.getTimeSeries(
+                startDate = getDateBeforeToDay(),
+                endDate = getCurrentDate(),
+                base = currencyFrom
+            )
+            historicalViewModel.timeSeries.collect { it ->
+                handleLoadAndError(it, snackbarVisibleState, isLoader) {
+                    addTimeSeriesListAndNotifyData(
+                        currencies, getMap(it.rates),
+                        df,
+                        currencyTo,
+                        amountFrom.toDouble()
+                    )
+                }
+            }
+        }
     }
 
 
-    AddTimeSeriesListAndNotifyData(
-        currencies, getMap(historicalViewModel.timeSeries.collectAsState().value?.data?.rates),
-        df,
-        currencyTo,
-        amountFrom.toDouble()
-    )
 
-    AddCurrenciesListAndNotifyData(historicalViewModel, currenciesRate, df, amountFrom)
+
+
+
 
     Row(Modifier.fillMaxSize()) {
-
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Top,
@@ -66,7 +110,7 @@ fun HistoricalFragment(
                 textAlign = TextAlign.Start
             )
             Text(
-                text = "Last 3 days",
+                text = stringResource(R.string.last_3_days),
                 modifier = Modifier.padding(top = 32.dp, start = 24.dp, end = 24.dp),
                 textAlign = TextAlign.Start
             )
@@ -95,6 +139,9 @@ fun HistoricalFragment(
         }
 
     }
+    ComposableWithSnackbar(snackbarVisibleState, messageError)
+
+    Loader(isLoading = isLoader.value)
 
 }
 
@@ -122,6 +169,7 @@ fun TimeSeriesList(currencies: ArrayList<Currency>) {
                             bottom.linkTo(parent.bottom)
                         }
                         .padding(start = 4.dp, top = 8.dp, bottom = 8.dp)
+                        .size(12.dp)
                 )
 
                 Box(
@@ -148,6 +196,7 @@ fun TimeSeriesList(currencies: ArrayList<Currency>) {
                             bottom.linkTo(parent.bottom)
                         }
                         .padding(top = 8.dp, bottom = 8.dp)
+                        .size(12.dp)
                 )
             }
         }
@@ -155,7 +204,7 @@ fun TimeSeriesList(currencies: ArrayList<Currency>) {
 }
 
 @Composable
-fun CurrenciesList(currenciesRate: ArrayList<CurrencyRate>) {
+fun CurrenciesList(currenciesRate: List<CurrencyRate>) {
 
     LazyColumn(
         modifier = Modifier
@@ -199,8 +248,8 @@ fun CurrenciesList(currenciesRate: ArrayList<CurrencyRate>) {
     }
 }
 
-@Composable
-private fun AddTimeSeriesListAndNotifyData(
+
+private fun addTimeSeriesListAndNotifyData(
     currencies: ArrayList<Currency>,
     map: Map<String, Any>?,
     df: DecimalFormat,
@@ -224,26 +273,24 @@ private fun AddTimeSeriesListAndNotifyData(
     }
 }
 
-@Composable
-private fun AddCurrenciesListAndNotifyData(
-    historicalViewModel: HistoricalViewModel,
+
+private fun addCurrenciesListAndNotifyData(
+    rates: Any,
     currenciesRate: ArrayList<CurrencyRate>,
     df: DecimalFormat,
     amountFrom: String
 ) {
-    historicalViewModel.currency.collectAsState().value?.let { it1 ->
-        getMap(it1.data?.rates)?.let {
-            for (item in 0 until it.toList().size) {
-                currenciesRate.add(
-                    CurrencyRate(
-                        it.toList()[item].first,
-                        df.format(
-                            (it.toList()[item].second.toString().toBigDecimal().toDouble() *
-                                    amountFrom.toDouble())
-                        )
+    getMap(rates)?.let {
+        for (item in 0 until it.toList().size) {
+            currenciesRate.add(
+                CurrencyRate(
+                    it.toList()[item].first,
+                    df.format(
+                        (it.toList()[item].second.toString().toBigDecimal().toDouble() *
+                                amountFrom.toDouble())
                     )
                 )
-            }
+            )
         }
     }
 }
