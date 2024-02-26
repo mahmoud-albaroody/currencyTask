@@ -53,7 +53,7 @@ fun ConvertCurrency(navController: NavController) {
     val isLoader = remember { mutableStateOf(false) }
     val dropdownValues by remember { mutableStateOf(ArrayList<String>()) }
     val from = stringResource(R.string.from)
-    val to = stringResource(R.string.too)
+    val to = stringResource(R.string.to)
     val connection by connectivityState()
     val isConnected = connection === ConnectionState.Available
 
