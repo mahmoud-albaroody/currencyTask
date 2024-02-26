@@ -1,9 +1,6 @@
 package com.bitaqaty.currencyapp.presentation.convertCurrency
 
-
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,43 +18,30 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-
 import androidx.compose.ui.unit.dp
-
-
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.core.content.ContentProviderCompat.requireContext
-import com.bitaqaty.currencyapp.data.remote.dto.Info
+import androidx.navigation.NavController
+import com.bitaqaty.currencyapp.data.remote.dto.Currency
+
+import com.bitaqaty.currencyapp.presentation.navigation.Screen
 import com.bitaqaty.currencyapp.utils.extention.getMap
-import es.dmoral.toasty.Toasty
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 
 @Composable
-fun ConvertCurrency() {
+fun ConvertCurrency(navController: NavController) {
     val convertCurrencyViewModel = hiltViewModel<ConvertCurrencyViewModel>()
-    val convert = convertCurrencyViewModel.convert.collectAsState()
-
-    val progressBar = remember { mutableStateOf(false) }
-    var fromText by remember { mutableStateOf("") }
-    var toText by remember { mutableStateOf("") }
+    var fromText by remember { mutableStateOf("EUR") }
+    var toText by remember { mutableStateOf("EGP") }
+    var amountfrom by remember { mutableStateOf("") }
+    var amountTo by remember { mutableStateOf("") }
     var isFromDropdownExpanded by remember { mutableStateOf(false) }
     var isToDropdownExpanded by remember { mutableStateOf(false) }
-    var dropdownValues2 by remember { mutableStateOf(ArrayList<String>()) }
-    var textChangedJob: Job? = null
-    val dropdownValues =
-        listOf("Item 1", "Item 2", "Item 3") // Replace with your actual dropdown values
+    val dropdownValues2 by remember { mutableStateOf(ArrayList<String>()) }
 
     LaunchedEffect(true) {
         // convertCurrencyViewModel.convert(from = "", to = "", amount = "12")
-         convertCurrencyViewModel.getSymbols()
+        //  convertCurrencyViewModel.getSymbols()
 
     }
 
@@ -72,6 +56,7 @@ fun ConvertCurrency() {
             .padding(32.dp), verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Navigation(navController)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -149,8 +134,8 @@ fun ConvertCurrency() {
                 .fillMaxWidth()
         ) {
             OutlinedTextField(
-                value = fromText,
-                onValueChange = { fromText = it },
+                value = amountfrom,
+                onValueChange = { amountfrom = it },
                 label = { Text("From", textAlign = TextAlign.Center) },
                 modifier = Modifier
                     .weight(1f)
@@ -159,9 +144,9 @@ fun ConvertCurrency() {
             )
 
             OutlinedTextField(
-                value = toText,
+                value = amountTo,
                 onValueChange = {
-                    toText = it
+                    amountTo = it
                 },
                 label = { Text("To", textAlign = TextAlign.Center) },
                 modifier = Modifier
@@ -176,7 +161,12 @@ fun ConvertCurrency() {
         }
 
         Button(
-            onClick = { /* Handle button click */ },
+            onClick = {
+                navController.navigate(
+                    Screen.Historical.route
+                        .plus("/${fromText}/${toText}/${amountfrom}/${amountTo}")
+                )
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(text = "Details")

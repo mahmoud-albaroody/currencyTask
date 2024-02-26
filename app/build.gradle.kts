@@ -92,6 +92,9 @@ dependencies {
     implementation ("org.jetbrains.kotlin:kotlin-stdlib:1.9.10")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.legacy:legacy-support-v4:1.0.0")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
     kapt ("com.google.dagger:hilt-android-compiler:2.48.1")
 
 

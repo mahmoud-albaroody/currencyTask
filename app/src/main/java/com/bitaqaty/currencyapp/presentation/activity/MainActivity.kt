@@ -5,6 +5,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.navigation.findNavController
+import com.bitaqaty.currencyapp.presentation.MainScreen
 import com.bitaqaty.currencyapp.presentation.convertCurrency.ConvertCurrency
 import com.bitaqaty.currencyapp.ui.theme.CurrencyAppTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -19,7 +21,7 @@ class MainActivity : AppCompatActivity() {
         }
         setContent {
             CurrencyAppTheme {
-                ConvertCurrency()
+                MainScreen()
             }
         }
     }
