@@ -5,9 +5,12 @@ import com.bitaqaty.currencyapp.CurrencyApp
 import com.bitaqaty.currencyapp.data.remote.ApiRepoImpl
 import com.bitaqaty.currencyapp.domain.usecase.ConvertUseCase
 import com.bitaqaty.currencyapp.data.remote.APIs
-import com.blockgemini.currencyapp.utils.constants.Constants
+import com.bitaqaty.currencyapp.domain.usecase.GetSymbolsUseCase
+import com.bitaqaty.currencyapp.domain.usecase.RateUseCase
+import com.bitaqaty.currencyapp.domain.usecase.TimeSeriesUseCase
+import com.bitaqaty.currencyapp.utils.constants.Constants
 
-import com.blockgemini.currencyapp.utils.constants.Constants.ACCESS_TOKEN
+import com.bitaqaty.currencyapp.utils.constants.Constants.ACCESS_TOKEN
 import com.google.gson.GsonBuilder
 import dagger.Module
 import dagger.Provides
@@ -127,10 +130,38 @@ class NetworkModule {
     }
     @Singleton
     @Provides
-    fun provideMovieUseCase(
+    fun provideConvertUseCase(
             apiService: ApiRepoImpl,
     ): ConvertUseCase {
         return ConvertUseCase(
+            apiService
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun provideGetSymbolsUseCase(
+        apiService: ApiRepoImpl,
+    ): GetSymbolsUseCase {
+        return GetSymbolsUseCase(
+            apiService
+        )
+    }
+    @Singleton
+    @Provides
+    fun provideTimeSeriesUseCase(
+        apiService: ApiRepoImpl,
+    ): TimeSeriesUseCase {
+        return TimeSeriesUseCase(
+            apiService
+        )
+    }
+    @Singleton
+    @Provides
+    fun provideRateUseCase(
+        apiService: ApiRepoImpl,
+    ): RateUseCase {
+        return RateUseCase(
             apiService
         )
     }

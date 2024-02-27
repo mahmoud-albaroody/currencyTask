@@ -4,7 +4,7 @@ import com.bitaqaty.currencyapp.data.remote.dto.ConvertResponse
 import com.bitaqaty.currencyapp.data.remote.dto.CurrencyResponse
 import com.bitaqaty.currencyapp.data.remote.dto.SymbolsResponse
 import com.bitaqaty.currencyapp.data.remote.dto.TimeSeriesResponse
-import com.blockgemini.currencyapp.utils.constants.Constants.ACCESS_TOKEN
+import com.bitaqaty.currencyapp.utils.constants.Constants.ACCESS_TOKEN
 import retrofit2.Response
 import retrofit2.http.*
 import retrofit2.http.Query

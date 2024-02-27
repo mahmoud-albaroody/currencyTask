@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <resources>
-    <string name="app_name">currencyApp</string>
     <string name="network_error">Network Error</string>
     <string name="last_3_days">Last 3 days</string>
     <string name="to">To</string>
